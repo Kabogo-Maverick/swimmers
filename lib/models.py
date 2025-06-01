@@ -1,11 +1,16 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, CheckConstraint
+from sqlalchemy import (
+    create_engine, Column, Integer, String,
+    ForeignKey, CheckConstraint, Date
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
+from datetime import date
 
-# Connect to SQLite DB
+# Database setup
 engine = create_engine("sqlite:///db/swim_class.db")
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
+
 
 class Swimmer(Base):
     __tablename__ = 'swimmers'
@@ -16,13 +21,17 @@ class Swimmer(Base):
     level = Column(String, nullable=False)
 
     __table_args__ = (
-        CheckConstraint(level.in_(['Beginner', 'Intermediate', 'Advanced']), name="valid_swimmer_level"),
+        CheckConstraint(
+            level.in_(['Beginner', 'Intermediate', 'Advanced']),
+            name="valid_swimmer_level"
+        ),
     )
 
     enrollments = relationship("Enrollment", back_populates="swimmer")
 
     def __repr__(self):
         return f"<Swimmer(name='{self.name}', age={self.age}, level='{self.level}')>"
+
 
 class Instructor(Base):
     __tablename__ = 'instructors'
@@ -34,7 +43,10 @@ class Instructor(Base):
     years_experience = Column(Integer, default=0)
 
     __table_args__ = (
-        CheckConstraint(certified_level.in_(['Beginner', 'Intermediate', 'Advanced', 'All Levels']), name="valid_certified_level"),
+        CheckConstraint(
+            certified_level.in_(['Beginner', 'Intermediate', 'Advanced', 'All Levels']),
+            name="valid_certified_level"
+        ),
     )
 
     enrollments = relationship("Enrollment", back_populates="instructor")
@@ -42,19 +54,23 @@ class Instructor(Base):
     def __repr__(self):
         return f"<Instructor(name='{self.name}', certified_level='{self.certified_level}')>"
 
+
 class Enrollment(Base):
     __tablename__ = 'enrollments'
 
     id = Column(Integer, primary_key=True)
-    swimmer_id = Column(Integer, ForeignKey('swimmers.id'))
-    instructor_id = Column(Integer, ForeignKey('instructors.id'))
+    swimmer_id = Column(Integer, ForeignKey('swimmers.id'), nullable=False)
+    instructor_id = Column(Integer, ForeignKey('instructors.id'), nullable=False)
+    session_date = Column(Date, default=date.today)
 
     swimmer = relationship("Swimmer", back_populates="enrollments")
     instructor = relationship("Instructor", back_populates="enrollments")
 
     def __repr__(self):
-        return f"<Enrollment(swimmer_id={self.swimmer_id}, instructor_id={self.instructor_id})>"
+        return (f"<Enrollment(swimmer_id={self.swimmer_id}, "
+                f"instructor_id={self.instructor_id}, session_date={self.session_date})>")
+
 
 if __name__ == '__main__':
     Base.metadata.create_all(engine)
-    print("All tables created successfully.")
+    print("✅ All tables created successfully.")

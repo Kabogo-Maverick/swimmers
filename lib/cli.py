@@ -1,3 +1,4 @@
+from datetime import datetime
 from lib.models import Session, Swimmer, Instructor, Enrollment
 
 def list_swimmers():
@@ -14,13 +15,13 @@ def add_swimmer():
     level = input("Enter swimmer level (Beginner, Intermediate, Advanced): ").strip().capitalize()
 
     if level not in ['Beginner', 'Intermediate', 'Advanced']:
-        print("Invalid level! Must be Beginner, Intermediate, or Advanced.")
+        print("❌ Invalid level! Must be Beginner, Intermediate, or Advanced.")
         return
 
     try:
         age = int(age)
     except ValueError:
-        print("Age must be a number.")
+        print("❌ Age must be a number.")
         return
 
     swimmer = Swimmer(name=name, age=age, level=level)
@@ -45,13 +46,13 @@ def add_instructor():
     years_exp = input("Enter years of experience: ").strip()
 
     if certified_level not in ['Beginner', 'All Levels']:
-        print("Invalid certified level! Must be 'Beginner' or 'All Levels'.")
+        print("❌ Invalid certified level! Must be 'Beginner' or 'All Levels'.")
         return
 
     try:
         years_exp = int(years_exp)
     except ValueError:
-        print("Years of experience must be a number.")
+        print("❌ Years of experience must be a number.")
         return
 
     instructor = Instructor(name=name, email=email, certified_level=certified_level, years_experience=years_exp)
@@ -65,10 +66,12 @@ def list_enrollments():
     session = Session()
     enrollments = session.query(Enrollment).all()
     print("\nList of Enrollments:")
+    if not enrollments:
+        print("No enrollments yet.")
     for e in enrollments:
         swimmer = e.swimmer
         instructor = e.instructor
-        print(f"{e.id}: Swimmer: {swimmer.name} (Level: {swimmer.level}) -> Instructor: {instructor.name} (Cert: {instructor.certified_level})")
+        print(f"{e.id}: Swimmer: {swimmer.name} (Level: {swimmer.level}) -> Instructor: {instructor.name} (Cert: {instructor.certified_level}), Date: {e.session_date}")
     session.close()
 
 def enroll_swimmer():
@@ -76,7 +79,7 @@ def enroll_swimmer():
 
     swimmers = session.query(Swimmer).all()
     if not swimmers:
-        print("No swimmers available.")
+        print("❌ No swimmers available.")
         session.close()
         return
     print("\nSwimmers:")
@@ -89,13 +92,13 @@ def enroll_swimmer():
         if not swimmer:
             raise ValueError("Swimmer not found.")
     except ValueError as e:
-        print(e)
+        print(f"❌ {e}")
         session.close()
         return
 
     instructors = session.query(Instructor).all()
     if not instructors:
-        print("No instructors available.")
+        print("❌ No instructors available.")
         session.close()
         return
     print("\nInstructors:")
@@ -108,20 +111,28 @@ def enroll_swimmer():
         if not instructor:
             raise ValueError("Instructor not found.")
     except ValueError as e:
-        print(e)
+        print(f"❌ {e}")
         session.close()
         return
 
-    enrollment = Enrollment(swimmer_id=swimmer_id, instructor_id=instructor_id)
+    session_date_input = input("Enter session date (YYYY-MM-DD) or press Enter for today: ").strip()
+    try:
+        session_date = datetime.strptime(session_date_input, "%Y-%m-%d").date() if session_date_input else datetime.today().date()
+    except ValueError:
+        print("❌ Invalid date format.")
+        session.close()
+        return
+
+    enrollment = Enrollment(swimmer_id=swimmer_id, instructor_id=instructor_id, session_date=session_date)
     session.add(enrollment)
     session.commit()
-    print(f"✅ Enrolled: {swimmer.name} with Instructor {instructor.name}")
+    print(f"✅ Enrolled: {swimmer.name} with Instructor {instructor.name} on {session_date}")
     session.close()
 
 def reset_all_data():
-    confirm = input("Are you sure you want to delete ALL data? This cannot be undone. (yes/no): ")
-    if confirm.lower() != "yes":
-        print("Reset cancelled.\n")
+    confirm = input("Are you sure you want to delete ALL data? This cannot be undone. (yes/no): ").strip().lower()
+    if confirm != "yes":
+        print("❌ Reset cancelled.\n")
         return
 
     session = Session()
@@ -161,7 +172,7 @@ def main_menu():
         elif choice == '7':
             reset_all_data()
         elif choice == '8':
-            print("Goodbye!")
+            print("👋 Goodbye!")
             break
         else:
-            print("Invalid choice. Try again.")
+            print("❌ Invalid choice. Try again.")
